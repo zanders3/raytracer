@@ -7,12 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FA12BBAC1A5181B70006E886 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = FA12BBAB1A5181B70006E886 /* main.c */; };
+		FA12BBAC1A5181B70006E886 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA12BBAB1A5181B70006E886 /* main.cpp */; };
 		FA12BBB31A5182120006E886 /* mykernel.cl in Sources */ = {isa = PBXBuildFile; fileRef = FA12BBB21A5182120006E886 /* mykernel.cl */; };
 		FA12BBB51A5182B10006E886 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA12BBB41A5182B10006E886 /* OpenCL.framework */; };
 		FA12BBB81A51929A0006E886 /* glwt.mm in Sources */ = {isa = PBXBuildFile; fileRef = FA12BBB61A51929A0006E886 /* glwt.mm */; };
 		FA12BBBA1A5192D90006E886 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA12BBB91A5192D90006E886 /* Cocoa.framework */; };
 		FA12BBBC1A5196870006E886 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA12BBBB1A5196870006E886 /* OpenGL.framework */; };
+		FA12BBC41A51DF7B0006E886 /* texturerenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA12BBC21A51DF7B0006E886 /* texturerenderer.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,13 +30,16 @@
 
 /* Begin PBXFileReference section */
 		FA12BBA81A5181B70006E886 /* Raytracer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Raytracer; sourceTree = BUILT_PRODUCTS_DIR; };
-		FA12BBAB1A5181B70006E886 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		FA12BBAB1A5181B70006E886 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		FA12BBB21A5182120006E886 /* mykernel.cl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.opencl; path = mykernel.cl; sourceTree = "<group>"; };
 		FA12BBB41A5182B10006E886 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = System/Library/Frameworks/OpenCL.framework; sourceTree = SDKROOT; };
 		FA12BBB61A51929A0006E886 /* glwt.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = glwt.mm; sourceTree = "<group>"; };
 		FA12BBB71A51929A0006E886 /* glwt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glwt.h; sourceTree = "<group>"; };
 		FA12BBB91A5192D90006E886 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		FA12BBBB1A5196870006E886 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		FA12BBC21A51DF7B0006E886 /* texturerenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = texturerenderer.cpp; sourceTree = "<group>"; };
+		FA12BBC31A51DF7B0006E886 /* texturerenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = texturerenderer.h; sourceTree = "<group>"; };
+		FA12BBC81A53193A0006E886 /* maths.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = maths.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +80,11 @@
 			children = (
 				FA12BBB71A51929A0006E886 /* glwt.h */,
 				FA12BBB61A51929A0006E886 /* glwt.mm */,
-				FA12BBAB1A5181B70006E886 /* main.c */,
+				FA12BBAB1A5181B70006E886 /* main.cpp */,
 				FA12BBB21A5182120006E886 /* mykernel.cl */,
+				FA12BBC21A51DF7B0006E886 /* texturerenderer.cpp */,
+				FA12BBC31A51DF7B0006E886 /* texturerenderer.h */,
+				FA12BBC81A53193A0006E886 /* maths.h */,
 			);
 			path = Raytracer;
 			sourceTree = "<group>";
@@ -138,8 +145,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FA12BBAC1A5181B70006E886 /* main.c in Sources */,
+				FA12BBAC1A5181B70006E886 /* main.cpp in Sources */,
 				FA12BBB31A5182120006E886 /* mykernel.cl in Sources */,
+				FA12BBC41A51DF7B0006E886 /* texturerenderer.cpp in Sources */,
 				FA12BBB81A51929A0006E886 /* glwt.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

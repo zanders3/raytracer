@@ -13,7 +13,7 @@
 
 color* image;
 
-static const int imageWidth = 800, imageHeight = 600;
+static const int imageWidth = 800, imageHeight = 600, maxDepth = 3;
 
 struct Ray
 {
@@ -26,10 +26,10 @@ struct Ray
 
 struct Material
 {
-    float reflect, diffuse;
+    float reflect, diffuse, spec;
     vec3 color;
     
-    Material() : reflect(0.0f), diffuse(1.0f), color(vec3(1.0f,1.0f,1.0f))
+    Material() : reflect(0.0f), diffuse(1.0f), spec(1.0f), color(vec3(1.0f,1.0f,1.0f))
     { }
 };
 
@@ -103,14 +103,8 @@ float clamp01(float f)
     return f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
 }
 
-color raytrace(int x, int y)
+vec3 raytrace(const Ray& r, int depth)
 {
-    //compute camera ray
-    vec3 o(0.0f, 0.0f, -5.0f);
-    float offsetX = x * 0.01f - 4.0f;
-    float offsetY = y * 0.01f - 4.0f;
-    Ray r(o, (vec3(offsetX, offsetY, 0.0f) - o).normalize());
-    
     //find nearest intersection
     float nearestIntersection = FLT_MAX, intersection;
     Primitive* nearestPrimitive = nullptr;
@@ -125,50 +119,111 @@ color raytrace(int x, int y)
     
     //nothing hit, render BG color
     if (!nearestPrimitive)
-        return (color){ 0, 0, 0 };
+        return vec3();
     
     vec3 col;
-    if (nearestPrimitive->isLight || nearestPrimitive->material.diffuse == 0.0f)
+    vec3 pos = r.origin + r.direction * nearestIntersection;
+    vec3 N = nearestPrimitive->GetNormal(pos);
+    
+    if (nearestPrimitive->isLight)
         col = nearestPrimitive->material.color;
     else
     {
-        vec3 pos = r.origin + r.direction * nearestIntersection;
-        vec3 N = nearestPrimitive->GetNormal(pos);
-        
         for (auto iter = scene.begin(); iter != scene.end(); iter++)
         {
             Primitive* p = *iter;
             if (p->isLight)
             {
+                float shade = 1.0f;
+                
+                //Shadows
+                vec3 L = (((Sphere*)p)->pos - pos).normalize();
+                Ray shadowRay(pos + L * 0.01f, L);
+                float shadowIntersection;
+                for (auto iter = scene.begin(); iter != scene.end(); iter++)
+                {
+                    if (!(*iter)->isLight && (*iter)->Raycast(shadowRay, shadowIntersection))
+                    {
+                        shade = 0.0f;
+                        break;
+                    }
+                }
+                
                 //N dot L diffuse lighting
-                float diffuse = N.dot((((Sphere*)p)->pos - pos).normalize());
-                col += (p->material.color * nearestPrimitive->material.color * diffuse);
+                if (nearestPrimitive->material.diffuse > 0.0f)
+                {
+                    float diffuse = N.dot(L) * nearestPrimitive->material.diffuse;
+                    col += (p->material.color * nearestPrimitive->material.color * diffuse) * shade;
+                }
+                
+                //specular component
+                if (nearestPrimitive->material.spec > 0.0f)
+                {
+                    vec3 R = L - N * L.dot(N) * 2.0f;
+                    float dot = r.direction.dot(R);
+                    if (dot > 0.0f)
+                        col += p->material.color * nearestPrimitive->material.color * powf(dot, 20.0f) * nearestPrimitive->material.spec * shade;
+                }
             }
+        }
+        
+        if (nearestPrimitive->material.reflect > 0.0f && depth < maxDepth)
+        {
+            vec3 R = r.direction - N * 2.0f * r.direction.dot(N);
+            vec3 reflectCol = raytrace(Ray(pos, R), depth+1);
+            col += reflectCol * nearestPrimitive->material.color * nearestPrimitive->material.reflect;
         }
     }
 
-    return (color){ (char)(clamp01(col.x)*255.0f), (char)(clamp01(col.y)*255.0f), (char)(clamp01(col.z)*255.0f) };
+    return col;
 }
 
 void setup()
 {
     texturerenderer_setup();
     
-    scene.push_back(new Sphere(vec3(1.0f, -0.8f, 3.0f), 2.5f));
-    scene.push_back(new Sphere(vec3(-5.5f,-0.5f, 7.0f), 2.0f));
+    clock_t start = clock();
     
-    Sphere* light = new Sphere(vec3(2.0f, 5.0f, 1.0f), 0.1f);
-    light->material.color = vec3(0.7f,0.7f,0.9f);
-    light->isLight = true;
-    scene.push_back(light);
+    Sphere* s = new Sphere(vec3(1.0f, -0.8f, 3.0f), 2.5f);
+    s->material.reflect = 1.0f;
+    s->material.diffuse = 0.0f;
+    scene.push_back(s);
     
-    scene.push_back(new Plane(vec3(0.0f, 1.0f, 0.0f), -1.0f));
+    s = new Sphere(vec3(-5.5f,-0.5f, 7.0f), 2.0f);
+    s->material.reflect = 1.0f;
+    s->material.diffuse = 0.0f;
+    scene.push_back(s);
+    
+    s = new Sphere(vec3(2.0f, 5.0f, 1.0f), 0.1f);
+    s->material.color = vec3(0.7f,0.7f,0.9f);
+    s->isLight = true;
+    scene.push_back(s);
+
+    s = new Sphere(vec3(-2.0f, 5.0f, -3.0f), 0.1f);
+    s->material.color = vec3(0.9f,0.9f,0.4f);
+    s->isLight = true;
+    scene.push_back(s);
+    
+    scene.push_back(new Plane(vec3(0.0f, 1.0f, 0.0f), -4.0f));
     
     image = new color[imageWidth*imageHeight];
     
     for (int y = 0; y<imageHeight; y++)
+    {
         for (int x = 0; x<imageWidth; x++)
-            image[(y*imageWidth)+x] = raytrace(x,y);
+        {
+            //compute camera ray
+            vec3 o(0.0f, 0.0f, -5.0f);
+            float offsetX = x * 0.01f - 4.0f;
+            float offsetY = y * 0.01f - 4.0f;
+            Ray r(o, (vec3(offsetX, offsetY, 0.0f) - o).normalize());
+
+            vec3 col = raytrace(r, 0);
+            image[(y*imageWidth)+x] = (color){ (char)(clamp01(col.x)*255.0f), (char)(clamp01(col.y)*255.0f), (char)(clamp01(col.z)*255.0f) };
+        }
+    }
+    
+    printf("Render took %f seconds", ((clock()-start)/(double)CLOCKS_PER_SEC));
     
     texturerenderer_displaytexture(image, imageWidth, imageHeight);
 }

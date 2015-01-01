@@ -114,6 +114,20 @@ struct vec3
                     );
     }
     
+    inline vec3 operator *(const vec3& other) const
+    {
+        return vec3(
+                    x * other.x, y * other.y, z * other.z
+                    );
+    }
+    
+    inline void operator +=(const vec3& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+    }
+    
     //subtracts two vectors, returning the result.
     inline vec3 operator -(const vec3& other) const
     {

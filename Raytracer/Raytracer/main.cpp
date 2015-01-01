@@ -29,7 +29,7 @@ struct Material
     float reflect, diffuse;
     vec3 color;
     
-    Material() : reflect(0.0f), diffuse(1.0f), color(vec3(1.0f, 0.0f, 0.0f))
+    Material() : reflect(0.0f), diffuse(1.0f), color(vec3(1.0f,1.0f,1.0f))
     { }
 };
 
@@ -37,8 +37,10 @@ struct Primitive
 {
     Material material;
     const char* name;
+    bool isLight = false;
     
     virtual bool Raycast(const Ray& ray, float& intersection) = 0;
+    virtual vec3 GetNormal(const vec3& pos) = 0;
 };
 
 struct Sphere : Primitive
@@ -59,13 +61,47 @@ struct Sphere : Primitive
         if (distToIntersectSq > radiusSq)
             return false;
         
-        intersection = distToCenter - sqrtf(distToIntersectSq);
+        intersection = distToCenter - sqrtf(radiusSq - distToIntersectSq);
         return true;
+    }
+    
+    virtual vec3 GetNormal(const vec3& pos)
+    {
+        return (pos - this->pos).normalize();
+    }
+};
+
+struct Plane : Primitive
+{
+    vec3 normal;
+    float offset;
+    
+    Plane(vec3 normal, float offset) : normal(normal), offset(offset)
+    {}
+    
+    virtual bool Raycast(const Ray& ray, float& intersection)
+    {
+        float ldotn = normal.dot(ray.direction);
+        if (ldotn == 0.0f)
+            return false;
+        
+        intersection = (offset - normal.dot(ray.origin)) / ldotn;
+        return intersection > 0.0f;
+    }
+    
+    virtual vec3 GetNormal(const vec3& pos)
+    {
+        return normal;
     }
 };
 
 #include <float.h>
 std::vector<Primitive*> scene;
+
+float clamp01(float f)
+{
+    return f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
+}
 
 color raytrace(int x, int y)
 {
@@ -80,17 +116,38 @@ color raytrace(int x, int y)
     Primitive* nearestPrimitive = nullptr;
     for (auto iter = scene.begin(); iter != scene.end(); iter++)
     {
-        if ((*iter)->Raycast(r, intersection) && nearestIntersection > intersection) {
+        if ((*iter)->Raycast(r, intersection) && nearestIntersection > intersection)
+        {
             nearestIntersection = intersection;
             nearestPrimitive = *iter;
         }
     }
     
+    //nothing hit, render BG color
     if (!nearestPrimitive)
         return (color){ 0, 0, 0 };
     
-    vec3 col = nearestPrimitive->material.color;
-    return (color){ (char)(col.x*255.0f), (char)(col.y*255.0f), (char)(col.z*255.0f) };
+    vec3 col;
+    if (nearestPrimitive->isLight || nearestPrimitive->material.diffuse == 0.0f)
+        col = nearestPrimitive->material.color;
+    else
+    {
+        vec3 pos = r.origin + r.direction * nearestIntersection;
+        vec3 N = nearestPrimitive->GetNormal(pos);
+        
+        for (auto iter = scene.begin(); iter != scene.end(); iter++)
+        {
+            Primitive* p = *iter;
+            if (p->isLight)
+            {
+                //N dot L diffuse lighting
+                float diffuse = N.dot((((Sphere*)p)->pos - pos).normalize());
+                col += (p->material.color * nearestPrimitive->material.color * diffuse);
+            }
+        }
+    }
+
+    return (color){ (char)(clamp01(col.x)*255.0f), (char)(clamp01(col.y)*255.0f), (char)(clamp01(col.z)*255.0f) };
 }
 
 void setup()
@@ -99,8 +156,13 @@ void setup()
     
     scene.push_back(new Sphere(vec3(1.0f, -0.8f, 3.0f), 2.5f));
     scene.push_back(new Sphere(vec3(-5.5f,-0.5f, 7.0f), 2.0f));
-    scene.push_back(new Sphere(vec3(0.0f, 5.0f, 5.0f), 0.1f));
-    scene.push_back(new Sphere(vec3(2.0f, 5.0f, 1.0f), 0.1f));
+    
+    Sphere* light = new Sphere(vec3(2.0f, 5.0f, 1.0f), 0.1f);
+    light->material.color = vec3(0.7f,0.7f,0.9f);
+    light->isLight = true;
+    scene.push_back(light);
+    
+    scene.push_back(new Plane(vec3(0.0f, 1.0f, 0.0f), -1.0f));
     
     image = new color[imageWidth*imageHeight];
     

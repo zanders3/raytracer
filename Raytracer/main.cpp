@@ -10,6 +10,8 @@
 #include "texturerenderer.h"
 #include "maths.h"
 #include <vector>
+#include <float.h>
+#include "objloader.h"
 
 color* image;
 
@@ -95,7 +97,43 @@ struct Plane : Primitive
     }
 };
 
-#include <float.h>
+struct Triangle : Primitive
+{
+    vec3 v1, e1, e2, N;
+    
+    Triangle(vec3 v1, vec3 v2, vec3 v3) : v1(v1), e1(v2-v1), e2(v3-v1)
+    {
+        N = e1.cross(e2).normalize();
+    }
+    
+    virtual bool Raycast(const Ray& ray, float& intersection)
+    {
+        vec3 P = ray.direction.cross(e2);
+        float det = e1.dot(P);
+        if (det > -0.0001f && det < 0.0001f)
+            return false;
+        float invdet = 1.0f/det;
+        
+        vec3 T = ray.origin - v1;
+        float u = T.dot(P) * invdet;
+        if (u < 0.0f || u > 1.0f)
+            return false;
+        
+        vec3 Q = T.cross(e1);
+        float v = ray.direction.dot(Q) * invdet;
+        if (v < 0.0f || u + v > 1.0f)
+            return false;
+        
+        intersection = e2.dot(Q) * invdet;
+        return intersection > 0.0001f;
+    }
+    
+    virtual vec3 GetNormal(const vec3& pos)
+    {
+        return N;
+    }
+};
+
 std::vector<Primitive*> scene;
 
 float clamp01(float f)
@@ -178,18 +216,28 @@ vec3 raytrace(const Ray& r, int depth)
     return col;
 }
 
+void LoadModel(const char* model)
+{
+    std::vector<vec3> verts;
+    std::vector<vec2> uvs;
+    std::vector<vec3> normals;
+    std::vector<int> inds;
+    
+    LoadModel(model, verts, uvs, normals, inds);
+    
+    for (int i = 0; i<inds.size();i+=3)
+    {
+        scene.push_back(new Triangle(verts[inds[i]], verts[inds[i+1]], verts[inds[i+2]]));
+    }
+}
+
 void setup()
 {
     texturerenderer_setup();
     
     clock_t start = clock();
     
-    Sphere* s = new Sphere(vec3(1.0f, -0.8f, 3.0f), 2.5f);
-    s->material.reflect = 1.0f;
-    s->material.diffuse = 0.0f;
-    scene.push_back(s);
-    
-    s = new Sphere(vec3(-5.5f,-0.5f, 7.0f), 2.0f);
+    Sphere* s = new Sphere(vec3(0.0f, 0.0f, 0.0f), 2.5f);
     s->material.reflect = 1.0f;
     s->material.diffuse = 0.0f;
     scene.push_back(s);
@@ -206,8 +254,11 @@ void setup()
     
     scene.push_back(new Plane(vec3(0.0f, 1.0f, 0.0f), -4.0f));
     
+    //LoadModel("/Users/alex/repos/native/Raytracer/Raytracer/sponza.obj");
+    
     image = new color[imageWidth*imageHeight];
     
+    printf("Rendering...\n");
     for (int y = 0; y<imageHeight; y++)
     {
         for (int x = 0; x<imageWidth; x++)
@@ -221,9 +272,11 @@ void setup()
             vec3 col = raytrace(r, 0);
             image[(y*imageWidth)+x] = (color){ (char)(clamp01(col.x)*255.0f), (char)(clamp01(col.y)*255.0f), (char)(clamp01(col.z)*255.0f) };
         }
+        
+        printf("\r%d/%d            ", y, imageHeight);
     }
     
-    printf("Render took %f seconds", ((clock()-start)/(double)CLOCKS_PER_SEC));
+    printf("\rRender took %f seconds", ((clock()-start)/(double)CLOCKS_PER_SEC));
     
     texturerenderer_displaytexture(image, imageWidth, imageHeight);
 }

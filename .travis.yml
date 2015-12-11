@@ -1,2 +1,3 @@
 language: objective-c
 xcode_project: Raytracer.xcodeproj
+osx_image: xcode7.2
